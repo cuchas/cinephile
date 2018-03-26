@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -15,17 +16,25 @@ import com.arctouch.codechallenge.util.MovieImageUrlBuilder;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
 
 public class HomeAdapter extends RecyclerView.Adapter<HomeAdapter.ViewHolder> {
 
-    private List<Movie> movies;
+    private ItemClickListener itemClickListener;
 
-    public HomeAdapter(List<Movie> movies) {
+    public void setMovies(List<Movie> movies) {
         this.movies = movies;
+        notifyDataSetChanged();
     }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder {
+    interface ItemClickListener {
+        void onItemClick(Movie movie);
+    }
+
+    private List<Movie> movies;
+
+    public static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         private final MovieImageUrlBuilder movieImageUrlBuilder = new MovieImageUrlBuilder();
 
@@ -33,16 +42,21 @@ public class HomeAdapter extends RecyclerView.Adapter<HomeAdapter.ViewHolder> {
         private final TextView genresTextView;
         private final TextView releaseDateTextView;
         private final ImageView posterImageView;
+        private Movie movie;
+        private ItemClickListener itemClickListener;
 
         public ViewHolder(View itemView) {
             super(itemView);
+            itemView.setOnClickListener(this);
             titleTextView = itemView.findViewById(R.id.titleTextView);
             genresTextView = itemView.findViewById(R.id.genresTextView);
             releaseDateTextView = itemView.findViewById(R.id.releaseDateTextView);
             posterImageView = itemView.findViewById(R.id.posterImageView);
         }
 
-        public void bind(Movie movie) {
+        public void bind(Movie movie, ItemClickListener itemClickListener) {
+            this.movie = movie;
+            this.itemClickListener = itemClickListener;
             titleTextView.setText(movie.title);
             genresTextView.setText(TextUtils.join(", ", movie.genres));
             releaseDateTextView.setText(movie.releaseDate);
@@ -55,6 +69,17 @@ public class HomeAdapter extends RecyclerView.Adapter<HomeAdapter.ViewHolder> {
                         .into(posterImageView);
             }
         }
+
+        @Override
+        public void onClick(View view) {
+            if(movie != null && itemClickListener != null) {
+                itemClickListener.onItemClick(movie);
+            }
+        }
+    }
+
+    public void setItemListener (ItemClickListener itemClickListener) {
+        this.itemClickListener = itemClickListener;
     }
 
     @NonNull
@@ -66,11 +91,11 @@ public class HomeAdapter extends RecyclerView.Adapter<HomeAdapter.ViewHolder> {
 
     @Override
     public int getItemCount() {
-        return movies.size();
+        return movies != null ? movies.size() : 0;
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(movies.get(position));
+        holder.bind(movies.get(position), itemClickListener);
     }
 }
