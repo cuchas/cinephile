@@ -9,12 +9,16 @@ public class Cache {
 
     private static List<Genre> genres = new ArrayList<>();
 
-    public static List<Genre> getGenres() {
+    public List<Genre> getGenres() {
         return genres;
     }
 
-    public static void setGenres(List<Genre> genres) {
+    public void setGenres(List<Genre> genres) {
         Cache.genres.clear();
         Cache.genres.addAll(genres);
+    }
+
+    public static Cache newInstance() {
+        return new Cache();
     }
 }
