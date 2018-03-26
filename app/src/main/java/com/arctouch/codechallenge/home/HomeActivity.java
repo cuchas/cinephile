@@ -4,6 +4,7 @@ import android.arch.lifecycle.ViewModelProviders;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -31,6 +32,22 @@ public class HomeActivity extends AppCompatActivity implements HomeAdapter.ItemC
         adapter = new HomeAdapter();
         adapter.setItemListener(HomeActivity.this);
         recyclerView.setAdapter(adapter);
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                int itensOnAdapter = recyclerView.getLayoutManager().getItemCount();
+
+                LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+
+                int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
+
+                if (firstVisibleItemPosition >= (itensOnAdapter - 10)) {
+                    viewModel.moreMovies();
+                }
+            }
+        });
 
         viewModel = ViewModelProviders.of(this).get(HomeViewModel.class);
         viewModel.getMovieList().observe(this, movies -> adapter.setMovies(movies));

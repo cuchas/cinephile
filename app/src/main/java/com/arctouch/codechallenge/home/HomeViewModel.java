@@ -27,9 +27,11 @@ public class HomeViewModel extends ViewModel {
     private final Executor executor;
     private final TmdbApi api;
     private final Cache cache;
+    private long page = 1L;
     private MutableLiveData<List<Movie>> movieList = new MutableLiveData<>();
     private MutableLiveData<Boolean> loading = new MutableLiveData<>();
     private MutableLiveData<Throwable> errorState = new MutableLiveData<>();
+    private List<Movie> movies = new ArrayList<>();
 
     public MutableLiveData<List<Movie>> getMovieList() {
         return movieList;
@@ -59,12 +61,20 @@ public class HomeViewModel extends ViewModel {
 
     public void listMovies() {
 
-        List<Movie> movieList = this.movieList.getValue();
-
         //uses cached values
-        if(movieList != null && movieList.size() > 0)
+        if(movies.size() > 0)
             return;
 
+        fetchMovies();
+    }
+
+    public void moreMovies() {
+        page++;
+
+        fetchMovies();
+    }
+
+    private void fetchMovies() {
         loading.setValue(true);
 
         executor.execute(() -> {
@@ -80,7 +90,13 @@ public class HomeViewModel extends ViewModel {
                 }
 
                 Response<UpcomingMoviesResponse> response =
-                        api.upcomingMovies(TmdbApiSettings.API_KEY, TmdbApiSettings.DEFAULT_LANGUAGE, 1L, TmdbApiSettings.DEFAULT_REGION).execute();
+                        api.upcomingMovies(TmdbApiSettings.API_KEY, TmdbApiSettings.DEFAULT_LANGUAGE, page, TmdbApiSettings.DEFAULT_REGION).execute();
+
+                if(response.body().results.size() == 0) {
+                    fixPaging();
+                    loading.postValue(false);
+                    return;
+                }
 
                 for (Movie movie : response.body().results) {
                     movie.genres = new ArrayList<>();
@@ -91,14 +107,21 @@ public class HomeViewModel extends ViewModel {
                         }
                     }
                 }
-
-                this.movieList.postValue(response.body().results);
+                this.movies.addAll(response.body().results);
+                this.movieList.postValue(movies);
                 loading.postValue(false);
 
             } catch (Exception e) {
                 errorState.postValue(e);
                 loading.postValue(false);
+
+                fixPaging();
             }
         });
+    }
+
+    private void fixPaging() {
+        if(page > 1)
+            page--;
     }
 }
