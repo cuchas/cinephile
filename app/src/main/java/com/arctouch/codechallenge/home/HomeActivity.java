@@ -26,33 +26,19 @@ public class HomeActivity extends AppCompatActivity implements HomeAdapter.ItemC
         super.onCreate(savedInstanceState);
         setContentView(R.layout.home_activity);
 
+        viewModel = ViewModelProviders.of(this).get(HomeViewModel.class);
+        viewModel.getMovieList().observe(this, movies -> adapter.setMovies(movies));
+        viewModel.getLoading().observe(this, loading -> progressBar.setVisibility(loading ? View.VISIBLE :  View.GONE));
+        viewModel.getErrorState().observe(this, throwable -> Toast.makeText(this, throwable.getMessage(), Toast.LENGTH_SHORT).show());
+
         this.recyclerView = findViewById(R.id.recyclerView);
         this.progressBar = findViewById(R.id.progressBar);
 
         adapter = new HomeAdapter();
         adapter.setItemListener(HomeActivity.this);
         recyclerView.setAdapter(adapter);
-        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                super.onScrolled(recyclerView, dx, dy);
+        recyclerView.addOnScrollListener(new InfinityScrollListener(viewModel));
 
-                int itensOnAdapter = recyclerView.getLayoutManager().getItemCount();
-
-                LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
-
-                int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
-
-                if (firstVisibleItemPosition >= (itensOnAdapter - 10)) {
-                    viewModel.moreMovies();
-                }
-            }
-        });
-
-        viewModel = ViewModelProviders.of(this).get(HomeViewModel.class);
-        viewModel.getMovieList().observe(this, movies -> adapter.setMovies(movies));
-        viewModel.getLoading().observe(this, loading -> progressBar.setVisibility(loading ? View.VISIBLE :  View.GONE));
-        viewModel.getErrorState().observe(this, throwable -> Toast.makeText(this, throwable.getMessage(), Toast.LENGTH_SHORT).show());
         viewModel.listMovies();
     }
 
