@@ -2,6 +2,7 @@ package com.arctouch.codechallenge.home;
 
 import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.ViewModel;
+import android.text.TextUtils;
 
 import com.arctouch.codechallenge.api.TmdbApi;
 import com.arctouch.codechallenge.api.TmdbApiSettings;
@@ -33,6 +34,10 @@ public class HomeViewModel extends ViewModel {
     private MutableLiveData<Boolean> loading = new MutableLiveData<>();
     private MutableLiveData<Throwable> errorState = new MutableLiveData<>();
     private List<Movie> movies = new ArrayList<>();
+    private List<Movie> searchMovieList = new ArrayList<>();
+    private long searchPage = 0;
+    private boolean noMoreSearch = false;
+    private String query;
 
     public MutableLiveData<List<Movie>> getMovieList() {
         return movieList;
@@ -72,6 +77,11 @@ public class HomeViewModel extends ViewModel {
     public void moreMovies() {
 
         loading.setValue(true);
+
+        if(!TextUtils.isEmpty(query)) {
+            search(query);
+            return;
+        }
 
         executor.execute(() -> {
             try {
@@ -147,5 +157,68 @@ public class HomeViewModel extends ViewModel {
     private void fixPaging() {
         if(page > 1)
             page--;
+    }
+
+    public void search(String query) {
+
+        if(TextUtils.isEmpty(query)) {
+            searchPage = 0;
+            searchMovieList.clear();
+            this.query = query;
+            movieList.setValue(movies);
+            return;
+        }
+
+        this.query = query;
+
+        executor.execute(() -> {
+            try {
+                if(noMoreSearch) {
+                    loading.postValue(false);
+                    return;
+                }
+
+                searchPage++;
+
+                Response<UpcomingMoviesResponse> response = api.search(TmdbApiSettings.API_KEY, query, searchPage).execute();;
+
+                UpcomingMoviesResponse body = response.body();
+
+                if(body == null)
+                    return;
+
+                if(body.results.size() == 0) {
+                    searchPage--;
+                    loading.postValue(false);
+                    return;
+                }
+
+                for (Movie movie : body.results) {
+                    movie.genres = new ArrayList<>();
+
+                    for (Genre genre : cache.getGenres()) {
+                        if (movie.genreIds.contains(genre.id)) {
+                            movie.genres.add(genre);
+                        }
+                    }
+                }
+                searchMovieList.addAll(body.results);
+                movieList.postValue(searchMovieList);
+                loading.postValue(false);
+
+                if(searchPage >= body.totalPages)
+                    noMoreSearch = true;
+
+            } catch (Exception e) {
+                errorState.postValue(e);
+                loading.postValue(false);
+
+                searchPage--;
+            }
+        });
+    }
+
+    public String getQuery() {
+        return query;
     }
 }

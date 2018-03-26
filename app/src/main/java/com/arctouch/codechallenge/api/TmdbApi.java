@@ -1,7 +1,5 @@
 package com.arctouch.codechallenge.api;
 
-import android.os.Bundle;
-
 import com.arctouch.codechallenge.model.GenreResponse;
 import com.arctouch.codechallenge.model.Movie;
 import com.arctouch.codechallenge.model.UpcomingMoviesResponse;
@@ -28,6 +26,12 @@ public interface TmdbApi {
             @Query("page") Long page,
             @Query("region") String region
     );
+
+    @GET("search/movie")
+    Call<UpcomingMoviesResponse> search(
+            @Query("api_key") String apiKey,
+            @Query("query") String query,
+            @Query("page") Long page);
 
     @GET("movie/{id}")
     Call<Movie> movie(
